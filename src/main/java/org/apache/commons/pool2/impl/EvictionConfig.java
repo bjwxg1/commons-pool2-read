@@ -27,8 +27,11 @@ package org.apache.commons.pool2.impl;
  */
 public class EvictionConfig {
 
+    //最小空闲时间
     private final long idleEvictTime;
+    //
     private final long idleSoftEvictTime;
+    //最小空闲连接数
     private final int minIdle;
 
     /**

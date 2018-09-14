@@ -70,6 +70,9 @@ package org.apache.commons.pool2;
  *
  * @since 2.0
  */
+
+//1.提供了管理对象池中对象生命周期的接口
+//
 public interface PooledObjectFactory<T> {
 
   /**
@@ -81,6 +84,7 @@ public interface PooledObjectFactory<T> {
    * @throws Exception if there is a problem creating a new instance,
    *    this will be propagated to the code requesting an object.
    */
+  //用于生成一个新的ObjectPool实例
   PooledObject<T> makeObject() throws Exception;
 
   /**
@@ -103,6 +107,7 @@ public interface PooledObjectFactory<T> {
    * @see #validateObject
    * @see ObjectPool#invalidateObject
    */
+  //当ObjectPool实例从池中被清理出去丢弃的时候调用（是否根据validateObject的测试结果由具体的实现在而定）
   void destroyObject(PooledObject<T> p) throws Exception;
 
   /**
@@ -113,6 +118,8 @@ public interface PooledObjectFactory<T> {
    * @return <code>false</code> if <code>obj</code> is not valid and should
    *         be dropped from the pool, <code>true</code> otherwise.
    */
+  //能用于从池中借出对象时，对处于激活（activated）状态的ObjectPool实例进行测试确保它是有效的。
+  //也有可能在ObjectPool实例返还池中进行钝化前调用进行测试是否有效。它只对处于激活状态的实例调用
   boolean validateObject(PooledObject<T> p);
 
   /**
@@ -125,6 +132,7 @@ public interface PooledObjectFactory<T> {
    *
    * @see #destroyObject
    */
+  //每一个钝化（passivated）的ObjectPool实例从池中借出（borrowed）前调用
   void activateObject(PooledObject<T> p) throws Exception;
 
   /**
@@ -137,5 +145,6 @@ public interface PooledObjectFactory<T> {
    *
    * @see #destroyObject
    */
+  //当ObjectPool实例返还池中的时候调用
   void passivateObject(PooledObject<T> p) throws Exception;
 }

@@ -40,6 +40,10 @@ import java.util.concurrent.TimeUnit;
  *
  * @since 2.0
  */
+
+/**
+ * 淘汰定时器
+ */
 class EvictionTimer {
 
     /** Executor instance */

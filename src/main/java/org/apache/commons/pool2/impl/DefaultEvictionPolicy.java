@@ -37,6 +37,12 @@ import org.apache.commons.pool2.PooledObject;
  *
  * @since 2.0
  */
+
+/**
+ *  淘汰条件
+ *  1.空闲时间大于config.getIdleSoftEvictTime()并且getMinIdle()大于idelCount
+ *  2.空闲时间大于config.getIdleEvictTime()
+ */
 public class DefaultEvictionPolicy<T> implements EvictionPolicy<T> {
 
     @Override

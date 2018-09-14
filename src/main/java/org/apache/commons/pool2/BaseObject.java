@@ -21,6 +21,8 @@ package org.apache.commons.pool2;
  *
  * @since 2.4.3
  */
+
+//基础方法，为对象的toString方法提供抽象
 public abstract class BaseObject {
 
     @Override
