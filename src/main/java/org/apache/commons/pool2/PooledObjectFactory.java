@@ -118,7 +118,7 @@ public interface PooledObjectFactory<T> {
    * @return <code>false</code> if <code>obj</code> is not valid and should
    *         be dropped from the pool, <code>true</code> otherwise.
    */
-  //能用于从池中借出对象时，对处于激活（activated）状态的ObjectPool实例进行测试确保它是有效的。
+  //用于从池中借出对象时，对处于激活（activated）状态的ObjectPool实例进行测试确保它是有效的。
   //也有可能在ObjectPool实例返还池中进行钝化前调用进行测试是否有效。它只对处于激活状态的实例调用
   boolean validateObject(PooledObject<T> p);
 

@@ -66,35 +66,51 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
     private static final String EVICTION_POLICY_TYPE_NAME = EvictionPolicy.class.getName();
 
     // Configuration attributes
+    //最大对象数
     private volatile int maxTotal =
             GenericKeyedObjectPoolConfig.DEFAULT_MAX_TOTAL;
+    //获取对象时，如果对象池已经耗尽是否阻塞
     private volatile boolean blockWhenExhausted =
             BaseObjectPoolConfig.DEFAULT_BLOCK_WHEN_EXHAUSTED;
+    //获取对象时最大等待时间
     private volatile long maxWaitMillis =
             BaseObjectPoolConfig.DEFAULT_MAX_WAIT_MILLIS;
+    //是否是后进先出
     private volatile boolean lifo = BaseObjectPoolConfig.DEFAULT_LIFO;
+    //是否是公平，主要用户创建队列
     private final boolean fairness;
+    //在创建对象时是否进行检测
     private volatile boolean testOnCreate =
             BaseObjectPoolConfig.DEFAULT_TEST_ON_CREATE;
+    //获取对象时是否进行检测
     private volatile boolean testOnBorrow =
             BaseObjectPoolConfig.DEFAULT_TEST_ON_BORROW;
+    //返还对象时是否进行检测
     private volatile boolean testOnReturn =
             BaseObjectPoolConfig.DEFAULT_TEST_ON_RETURN;
+    //空闲时是否进行检测
     private volatile boolean testWhileIdle =
             BaseObjectPoolConfig.DEFAULT_TEST_WHILE_IDLE;
+    //运行回收检测线程的时间间隔
     private volatile long timeBetweenEvictionRunsMillis =
             BaseObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS;
+    //每次回收检测线程检测对象的个数
     private volatile int numTestsPerEvictionRun =
             BaseObjectPoolConfig.DEFAULT_NUM_TESTS_PER_EVICTION_RUN;
+    //最小空闲时间,达到此值后可能被移除
     private volatile long minEvictableIdleTimeMillis =
             BaseObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS;
+    //空闲的最小时间，达到此值后空闲链接将会被移除，且保留“minIdle”个空闲连接数
     private volatile long softMinEvictableIdleTimeMillis =
             BaseObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS;
+    //回收策略
     private volatile EvictionPolicy<T> evictionPolicy;
+    //回收线程关闭的超时时间
     private volatile long evictorShutdownTimeoutMillis =
             BaseObjectPoolConfig.DEFAULT_EVICTOR_SHUTDOWN_TIMEOUT_MILLIS;
 
 
+    //内部使用的属性
     // Internal (primarily state) attributes
     final Object closeLock = new Object();
     volatile boolean closed = false;
@@ -110,10 +126,11 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
     private final WeakReference<ClassLoader> factoryClassLoader;
 
 
+    //JMX监控属性
     // Monitoring (primarily JMX) attributes
     private final ObjectName objectName;
     private final String creationStackTrace;
-    private final AtomicLong borrowedCount = new AtomicLong(0);
+    private final AtomicLong borrowedCount = new AtomicLong(0);//
     private final AtomicLong returnedCount = new AtomicLong(0);
     final AtomicLong createdCount = new AtomicLong(0);
     final AtomicLong destroyedCount = new AtomicLong(0);
@@ -138,6 +155,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
     public BaseGenericObjectPool(final BaseObjectPoolConfig<T> config,
             final String jmxNameBase, final String jmxNamePrefix) {
         if (config.getJmxEnabled()) {
+            //注册JMX
             this.objectName = jmxRegister(config, jmxNameBase, jmxNamePrefix);
         } else {
             this.objectName = null;
@@ -462,6 +480,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
      *
      * @see #getTimeBetweenEvictionRunsMillis
      */
+    //设置回收线程执行时间间隔，并启动回收线程
     public final void setTimeBetweenEvictionRunsMillis(
             final long timeBetweenEvictionRunsMillis) {
         this.timeBetweenEvictionRunsMillis = timeBetweenEvictionRunsMillis;
@@ -747,6 +766,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
      *
      * @param delay time in milliseconds before start and between eviction runs
      */
+    //在启动新的回收线程时关闭旧的回收线程
     final void startEvictor(final long delay) {
         synchronized (evictionLock) {
             if (null != evictor) {
@@ -755,6 +775,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
                 evictionIterator = null;
             }
             if (delay > 0) {
+                //创建新的Evictor,并提交
                 evictor = new Evictor();
                 EvictionTimer.schedule(evictor, delay, delay);
             }
@@ -766,6 +787,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
      * available in the pool.
      * @throws Exception if an error occurs creating idle instances
      */
+    //在回收线程执行完一次回收任务后，调用该方法保证。对象池内的对象不小于minIdle
     abstract void ensureMinIdle() throws Exception;
 
 
@@ -942,6 +964,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
      * @param p object borrowed from the pool
      * @param waitTime time (in milliseconds) that the borrowing thread had to wait
      */
+    //更新统计信息
     final void updateStatsBorrow(final PooledObject<T> p, final long waitTime) {
         borrowedCount.incrementAndGet();
         idleTimes.add(p.getIdleTimeMillis());
@@ -971,6 +994,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
      * Marks the object as returning to the pool.
      * @param pooledObject instance to return to the keyed pool
      */
+    //当对象返回到对象池时更新对象状态为：ALLOCATED---》RETURNING
     protected void markReturningState(final PooledObject<T> pooledObject) {
         synchronized(pooledObject) {
             final PooledObjectState state = pooledObject.getState();
@@ -1108,6 +1132,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
 
                 // Evict from the pool
                 try {
+                    //回收方法
                     evict();
                 } catch(final Exception e) {
                     swallowException(e);
@@ -1118,6 +1143,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
                 }
                 // Re-create idle instances.
                 try {
+                    //保证最小空闲数
                     ensureMinIdle();
                 } catch (final Exception e) {
                     swallowException(e);

@@ -148,6 +148,7 @@ public class GenericObjectPool<T> extends BaseGenericObjectPool<T>
      *
      * @see #setMaxIdle
      */
+    //在负载比较高的系统maxIdel值不能设置的太小
     @Override
     public int getMaxIdle() {
         return maxIdle;
@@ -712,21 +713,25 @@ public class GenericObjectPool<T> extends BaseGenericObjectPool<T>
      */
     @Override
     public void evict() throws Exception {
+        //判断对象池是否关闭,如果已经关闭直接抛出异常
         assertOpen();
-
+        //判断idle队列的size是否大于0，大于0才进行后面的操作
         if (idleObjects.size() > 0) {
 
             PooledObject<T> underTest = null;
+            //获取具体的淘汰策略
             final EvictionPolicy<T> evictionPolicy = getEvictionPolicy();
-
+            //获取锁，防止并发
             synchronized (evictionLock) {
+                //创建evictionConfig对象
                 final EvictionConfig evictionConfig = new EvictionConfig(
                         getMinEvictableIdleTimeMillis(),
                         getSoftMinEvictableIdleTimeMillis(),
                         getMinIdle());
-
+                //获取testWhileIdle，只有testWhileIdle为true时，当一个对象处于idel状态才会进行检测
                 final boolean testWhileIdle = getTestWhileIdle();
 
+                //通过getNumTests获取每次要检测的处于idel状态的对象的个数
                 for (int i = 0, m = getNumTests(); i < m; i++) {
                     if (evictionIterator == null || !evictionIterator.hasNext()) {
                         evictionIterator = new EvictionIterator(idleObjects);
@@ -736,6 +741,7 @@ public class GenericObjectPool<T> extends BaseGenericObjectPool<T>
                         return;
                     }
 
+                    //从idel队列中获取一个对象
                     try {
                         underTest = evictionIterator.next();
                     } catch (final NoSuchElementException nsee) {
@@ -746,6 +752,7 @@ public class GenericObjectPool<T> extends BaseGenericObjectPool<T>
                         continue;
                     }
 
+                    //开始进行EvictionTest，注意此处的状态转换，IDLE--》EVICTION
                     if (!underTest.startEvictionTest()) {
                         // Object was borrowed in another thread
                         // Don't count this as an eviction test so reduce i;
@@ -756,6 +763,7 @@ public class GenericObjectPool<T> extends BaseGenericObjectPool<T>
                     // User provided eviction policy could throw all sorts of
                     // crazy exceptions. Protect against such an exception
                     // killing the eviction thread.
+                    //根据evictionPolicy判断当前对象是否需要淘汰
                     boolean evict;
                     try {
                         evict = evictionPolicy.evict(evictionConfig, underTest,
@@ -769,10 +777,13 @@ public class GenericObjectPool<T> extends BaseGenericObjectPool<T>
                         evict = false;
                     }
 
+                    //如果evict为true说明该对象需要淘汰，调用destroy方法进行销毁，并增加销毁计数器
+                    //注意在destory()中状态会由EVICTION--》INVALID
                     if (evict) {
                         destroy(underTest);
                         destroyedByEvictorCount.incrementAndGet();
                     } else {
+                        //如果testWhileIdle
                         if (testWhileIdle) {
                             boolean active = false;
                             try {
@@ -914,12 +925,16 @@ public class GenericObjectPool<T> extends BaseGenericObjectPool<T>
      *                   cleanly
      */
     private void destroy(final PooledObject<T> toDestroy) throws Exception {
+        //1.将对象状态设置为INVALID
         toDestroy.invalidate();
+        //从idleObjects和allObjects队列中移除
         idleObjects.remove(toDestroy);
         allObjects.remove(new IdentityWrapper<>(toDestroy.getObject()));
         try {
+            //销户对象，需要自己实现
             factory.destroyObject(toDestroy);
         } finally {
+            //增加计数器
             destroyedCount.incrementAndGet();
             createCount.decrementAndGet();
         }
