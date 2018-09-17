@@ -341,23 +341,28 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
      *                   error
      */
     public T borrowObject(final K key, final long borrowMaxWaitMillis) throws Exception {
+        //判断是否关闭
         assertOpen();
 
         PooledObject<T> p = null;
 
         // Get local copy of current config so it is consistent for entire
         // method execution
+        //判断是否阻塞
         final boolean blockWhenExhausted = getBlockWhenExhausted();
 
         boolean create;
         final long waitTime = System.currentTimeMillis();
+        //根据key获取队列
         final ObjectDeque<T> objectDeque = register(key);
 
         try {
             while (p == null) {
                 create = false;
+                //从idleObject获取元素
                 p = objectDeque.getIdleObjects().pollFirst();
                 if (p == null) {
+                    //创建对象
                     p = create(key);
                     if (p != null) {
                         create = true;

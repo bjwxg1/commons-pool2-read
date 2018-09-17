@@ -152,6 +152,7 @@ public class DefaultPooledObject<T> implements PooledObject<T> {
     }
 
     @Override
+    //状态转化idle-->EVICTION
     public synchronized boolean startEvictionTest() {
         if (state == PooledObjectState.IDLE) {
             state = PooledObjectState.EVICTION;
@@ -162,6 +163,8 @@ public class DefaultPooledObject<T> implements PooledObject<T> {
     }
 
     @Override
+    //状态装换EVICTION--》IDLE
+    //EVICTION_RETURN_TO_HEAD-->IDLE
     public synchronized boolean endEvictionTest(
             final Deque<PooledObject<T>> idleQueue) {
         if (state == PooledObjectState.EVICTION) {

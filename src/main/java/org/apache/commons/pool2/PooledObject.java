@@ -54,6 +54,7 @@ public interface PooledObject<T> extends Comparable<PooledObject<T>> {
      *
      * @return The time in milliseconds last spent in the active state
      */
+    //上次处于active state的时间
     long getActiveTimeMillis();
 
     /**

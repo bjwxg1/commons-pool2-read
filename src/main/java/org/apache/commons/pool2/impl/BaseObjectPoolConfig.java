@@ -36,6 +36,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getLifo()
      * @see GenericKeyedObjectPool#getLifo()
      */
+    //队列默认为先进先出
     public static final boolean DEFAULT_LIFO = true;
 
     /**
@@ -43,6 +44,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getFairness()
      * @see GenericKeyedObjectPool#getFairness()
      */
+    //默认为非公平的
     public static final boolean DEFAULT_FAIRNESS = false;
 
     /**
@@ -50,6 +52,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getMaxWaitMillis()
      * @see GenericKeyedObjectPool#getMaxWaitMillis()
      */
+    //默认等待时间（负数为一直等待）
     public static final long DEFAULT_MAX_WAIT_MILLIS = -1L;
 
     /**
@@ -58,6 +61,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getMinEvictableIdleTimeMillis()
      * @see GenericKeyedObjectPool#getMinEvictableIdleTimeMillis()
      */
+    //最小空闲时间
     public static final long DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS =
             1000L * 60L * 30L;
 
@@ -75,6 +79,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getEvictorShutdownTimeoutMillis()
      * @see GenericKeyedObjectPool#getEvictorShutdownTimeoutMillis()
      */
+    //逐出线程默认关闭时间
     public static final long DEFAULT_EVICTOR_SHUTDOWN_TIMEOUT_MILLIS =
             10L * 1000L;
 
@@ -84,6 +89,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getNumTestsPerEvictionRun()
      * @see GenericKeyedObjectPool#getNumTestsPerEvictionRun()
      */
+    //逐出线程每次检测对象个数
     public static final int DEFAULT_NUM_TESTS_PER_EVICTION_RUN = 3;
 
     /**
@@ -93,6 +99,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      *
      * @since 2.2
      */
+    //create时是否检测对象有效性 默认为false
     public static final boolean DEFAULT_TEST_ON_CREATE = false;
 
     /**
@@ -100,6 +107,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getTestOnBorrow()
      * @see GenericKeyedObjectPool#getTestOnBorrow()
      */
+    //Borrow时是否检测对象有效性 默认为false
     public static final boolean DEFAULT_TEST_ON_BORROW = false;
 
     /**
@@ -107,6 +115,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getTestOnReturn()
      * @see GenericKeyedObjectPool#getTestOnReturn()
      */
+    //return时是否检测对象有效性 默认为false
     public static final boolean DEFAULT_TEST_ON_RETURN = false;
 
     /**
@@ -114,6 +123,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getTestWhileIdle()
      * @see GenericKeyedObjectPool#getTestWhileIdle()
      */
+    //IDLE时是否检测对象有效性 默认为false
     public static final boolean DEFAULT_TEST_WHILE_IDLE = false;
 
     /**
@@ -122,6 +132,7 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getTimeBetweenEvictionRunsMillis()
      * @see GenericKeyedObjectPool#getTimeBetweenEvictionRunsMillis()
      */
+    //逐出线程运行频率
     public static final long DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS = -1L;
 
     /**
@@ -130,12 +141,14 @@ public abstract class BaseObjectPoolConfig<T> extends BaseObject implements Clon
      * @see GenericObjectPool#getBlockWhenExhausted()
      * @see GenericKeyedObjectPool#getBlockWhenExhausted()
      */
+    //资源耗尽时释放阻塞
     public static final boolean DEFAULT_BLOCK_WHEN_EXHAUSTED = true;
 
     /**
      * The default value for enabling JMX for pools created with a configuration
      * instance.
      */
+    //释放开启JMX监控
     public static final boolean DEFAULT_JMX_ENABLE = true;
 
     /**

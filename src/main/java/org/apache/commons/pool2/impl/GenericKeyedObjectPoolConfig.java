@@ -34,6 +34,7 @@ public class GenericKeyedObjectPoolConfig<T> extends BaseObjectPoolConfig<T> {
      * The default value for the {@code maxTotalPerKey} configuration attribute.
      * @see GenericKeyedObjectPool#getMaxTotalPerKey()
      */
+    //每个key的最大value个数
     public static final int DEFAULT_MAX_TOTAL_PER_KEY = 8;
 
     /**
@@ -46,12 +47,14 @@ public class GenericKeyedObjectPoolConfig<T> extends BaseObjectPoolConfig<T> {
      * The default value for the {@code minIdlePerKey} configuration attribute.
      * @see GenericKeyedObjectPool#getMinIdlePerKey()
      */
+    //key的最小空闲value个数
     public static final int DEFAULT_MIN_IDLE_PER_KEY = 0;
 
     /**
      * The default value for the {@code maxIdlePerKey} configuration attribute.
      * @see GenericKeyedObjectPool#getMaxIdlePerKey()
      */
+    //key的最大空闲value个数
     public static final int DEFAULT_MAX_IDLE_PER_KEY = 8;
 
 
