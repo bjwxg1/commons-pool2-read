@@ -184,8 +184,10 @@ public class DefaultPooledObject<T> implements PooledObject<T> {
      */
     @Override
     public synchronized boolean allocate() {
+        //如果对象状态为IDLE，则更新为---》ALLOCATED
         if (state == PooledObjectState.IDLE) {
             state = PooledObjectState.ALLOCATED;
+            //更新lastBorrowTime和lastUseTime
             lastBorrowTime = System.currentTimeMillis();
             lastUseTime = lastBorrowTime;
             borrowedCount++;
@@ -195,6 +197,7 @@ public class DefaultPooledObject<T> implements PooledObject<T> {
             return true;
         } else if (state == PooledObjectState.EVICTION) {
             // TODO Allocate anyway and ignore eviction test
+            //如果状态是EVICTION，将状态更新为EVICTION_RETURN_TO_HEAD
             state = PooledObjectState.EVICTION_RETURN_TO_HEAD;
             return false;
         }
@@ -210,6 +213,7 @@ public class DefaultPooledObject<T> implements PooledObject<T> {
      * @return {@code true} if the state was {@link PooledObjectState#ALLOCATED ALLOCATED}
      */
     @Override
+    //状态由ALLOCATED或RETURNING更新为IDLE
     public synchronized boolean deallocate() {
         if (state == PooledObjectState.ALLOCATED ||
                 state == PooledObjectState.RETURNING) {

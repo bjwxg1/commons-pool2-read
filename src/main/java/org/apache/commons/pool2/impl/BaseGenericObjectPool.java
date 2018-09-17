@@ -77,7 +77,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
             BaseObjectPoolConfig.DEFAULT_MAX_WAIT_MILLIS;
     //是否是后进先出
     private volatile boolean lifo = BaseObjectPoolConfig.DEFAULT_LIFO;
-    //是否是公平，主要用户创建队列
+    //是否是公平，主要用于创建创建队列
     private final boolean fairness;
     //在创建对象时是否进行检测
     private volatile boolean testOnCreate =
@@ -766,7 +766,7 @@ public abstract class BaseGenericObjectPool<T> extends BaseObject {
      *
      * @param delay time in milliseconds before start and between eviction runs
      */
-    //在启动新的回收线程时关闭旧的回收线程
+    //启动新的回收线程时关闭旧的回收线程
     final void startEvictor(final long delay) {
         synchronized (evictionLock) {
             if (null != evictor) {
