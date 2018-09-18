@@ -28,6 +28,7 @@ import java.lang.ref.SoftReference;
  *
  * @since 2.0
  */
+//基于软引用实现的PooledObject
 public class PooledSoftReference<T> extends DefaultPooledObject<T> {
 
     /** SoftReference wrapped by this object */
