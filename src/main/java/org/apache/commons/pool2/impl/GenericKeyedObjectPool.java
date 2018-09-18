@@ -469,20 +469,25 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
     @Override
     public void returnObject(final K key, final T obj) {
 
+        //根据key获取objectDeque
         final ObjectDeque<T> objectDeque = poolMap.get(key);
 
+        //从objectDeque中获取obj
         final PooledObject<T> p = objectDeque.getAllObjects().get(new IdentityWrapper<>(obj));
 
+        //为空直接返回
         if (p == null) {
             throw new IllegalStateException(
                     "Returned object not currently part of this pool");
         }
 
+        //对象状态更新为returning
         markReturningState(p);
 
         final long activeTime = p.getActiveTimeMillis();
 
         try {
+            //TestOnReturn开启并且校验失败直接销毁
             if (getTestOnReturn() && !factory.validateObject(key, p)) {
                 try {
                     destroy(key, p, true);
@@ -493,6 +498,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                 return;
             }
 
+            //钝化失败销毁
             try {
                 factory.passivateObject(key, p);
             } catch (final Exception e1) {
@@ -506,6 +512,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                 return;
             }
 
+            //deallocate
             if (!p.deallocate()) {
                 throw new IllegalStateException(
                         "Object has already been returned to this pool");
@@ -515,6 +522,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
             final LinkedBlockingDeque<PooledObject<T>> idleObjects =
                     objectDeque.getIdleObjects();
 
+            //如果idleObjects>maxIdle,进行销毁
             if (isClosed() || maxIdle > -1 && maxIdle <= idleObjects.size()) {
                 try {
                     destroy(key, p, true);
@@ -522,6 +530,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                     swallowException(e);
                 }
             } else {
+                //否则放回idel队列
                 if (getLifo()) {
                     idleObjects.addFirst(p);
                 } else {
@@ -531,6 +540,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                     // Pool closed while object was being added to idle objects.
                     // Make sure the returned object is destroyed rather than left
                     // in the idle object pool (which would effectively be a leak)
+                   //如果已关闭，清空key
                     clear(key);
                 }
             }
@@ -875,37 +885,44 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
         final EvictionPolicy<T> evictionPolicy = getEvictionPolicy();
 
         synchronized (evictionLock) {
+            //创建evictionConfig
             final EvictionConfig evictionConfig = new EvictionConfig(
                     getMinEvictableIdleTimeMillis(),
                     getSoftMinEvictableIdleTimeMillis(),
                     getMinIdlePerKey());
-
             final boolean testWhileIdle = getTestWhileIdle();
 
             for (int i = 0, m = getNumTests(); i < m; i++) {
+                //evictionIterator为null或者evictionIterator.hasNext()为false
                 if(evictionIterator == null || !evictionIterator.hasNext()) {
+                    //evictionKeyIterator为null或者evictionKeyIterator.hasNext()为false
                     if (evictionKeyIterator == null ||
                             !evictionKeyIterator.hasNext()) {
                         final List<K> keyCopy = new ArrayList<>();
                         final Lock readLock = keyLock.readLock();
                         readLock.lock();
                         try {
+                            //拷贝poolKeyList
                             keyCopy.addAll(poolKeyList);
                         } finally {
                             readLock.unlock();
                         }
+                        //evictionKeyIterator复制
                         evictionKeyIterator = keyCopy.iterator();
                     }
                     while (evictionKeyIterator.hasNext()) {
                         evictionKey = evictionKeyIterator.next();
+                        //获取objectDeque
                         final ObjectDeque<T> objectDeque = poolMap.get(evictionKey);
                         if (objectDeque == null) {
                             continue;
                         }
-
+                        //获取idleObjects
                         final Deque<PooledObject<T>> idleObjects = objectDeque.getIdleObjects();
+                        //复制evictionIterator
                         evictionIterator = new EvictionIterator(idleObjects);
                         if (evictionIterator.hasNext()) {
+                            //如果evictionIterator.hasNext()为true跳出内存循环
                             break;
                         }
                         evictionIterator = null;
@@ -917,6 +934,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                 }
                 final Deque<PooledObject<T>> idleObjects;
                 try {
+                    //获取待检验的对象
                     underTest = evictionIterator.next();
                     idleObjects = evictionIterator.getIdleObjects();
                 } catch (final NoSuchElementException nsee) {
@@ -927,6 +945,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                     continue;
                 }
 
+                //更新对象状态
                 if (!underTest.startEvictionTest()) {
                     // Object was borrowed in another thread
                     // Don't count this as an eviction test so reduce i;
@@ -949,26 +968,31 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                     // Don't evict on error conditions
                     evict = false;
                 }
-
+                //如果对象需要逐出，调用destroy
                 if (evict) {
                     destroy(evictionKey, underTest, true);
                     destroyedByEvictorCount.incrementAndGet();
                 } else {
+                    //如果对象不需要逐出，testWhileIdle为true
                     if (testWhileIdle) {
                         boolean active = false;
                         try {
+                            //调用activateObject方法
                             factory.activateObject(evictionKey, underTest);
                             active = true;
                         } catch (final Exception e) {
                             destroy(evictionKey, underTest, true);
                             destroyedByEvictorCount.incrementAndGet();
                         }
+                        //如果active为true
                         if (active) {
+                            //验证对象有效性，如果返回false直接销毁
                             if (!factory.validateObject(evictionKey, underTest)) {
                                 destroy(evictionKey, underTest, true);
                                 destroyedByEvictorCount.incrementAndGet();
                             } else {
                                 try {
+                                    ////验证对象有效性，如果返回true，但是钝化失败直接销毁
                                     factory.passivateObject(evictionKey, underTest);
                                 } catch (final Exception e) {
                                     destroy(evictionKey, underTest, true);
@@ -1468,7 +1492,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
 
         private final LinkedBlockingDeque<PooledObject<S>> idleObjects;
 
-        /*
+        /**
          * Number of instances created - number destroyed.
          * Invariant: createCount <= maxTotalPerKey
          */
@@ -1477,14 +1501,14 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
         private long makeObjectCount = 0;
         private final Object makeObjectCountLock = new Object();
 
-        /*
+        /**
          * The map is keyed on pooled instances, wrapped to ensure that
          * they work properly as keys.
          */
         private final Map<IdentityWrapper<S>, PooledObject<S>> allObjects =
                 new ConcurrentHashMap<>();
 
-        /*
+        /**
          * Number of threads with registered interest in this key.
          * register(K) increments this counter and deRegister(K) decrements it.
          * Invariant: empty keyed pool will not be dropped unless numInterested
@@ -1568,14 +1592,15 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
 
     //--- internal attributes --------------------------------------------------
 
-    /*
+    /**
      * My hash of sub-pools (ObjectQueue). The list of keys <b>must</b> be kept
      * in step with {@link #poolKeyList} using {@link #keyLock} to ensure any
      * changes to the list of current keys is made in a thread-safe manner.
      */
+    //ObjectDeque
     private final Map<K,ObjectDeque<T>> poolMap =
             new ConcurrentHashMap<>(); // @GuardedBy("keyLock") for write access (and some read access)
-    /*
+    /**
      * List of pool keys - used to control eviction order. The list of keys
      * <b>must</b> be kept in step with {@link #poolMap} using {@link #keyLock}
      * to ensure any changes to the list of current keys is made in a
@@ -1583,7 +1608,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
      */
     private final List<K> poolKeyList = new ArrayList<>(); // @GuardedBy("keyLock")
     private final ReadWriteLock keyLock = new ReentrantReadWriteLock(true);
-    /*
+    /**
      * The combined count of the currently active objects for all keys and those
      * in the process of being created. Under load, it may exceed
      * {@link #maxTotal} but there will never be more than {@link #maxTotal}
