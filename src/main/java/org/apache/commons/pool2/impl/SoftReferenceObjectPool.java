@@ -114,6 +114,7 @@ public class SoftReferenceObjectPool<T> extends BaseObjectPool<T> {
     @SuppressWarnings("null") // ref cannot be null
     @Override
     public synchronized T borrowObject() throws Exception {
+        //判断对象池是否关闭
         assertOpen();
         T obj = null;
         boolean newlyCreated = false;
@@ -124,12 +125,14 @@ public class SoftReferenceObjectPool<T> extends BaseObjectPool<T> {
                     throw new NoSuchElementException();
                 }
                 newlyCreated = true;
+                //创建一个对象
                 obj = factory.makeObject().getObject();
                 createCount++;
                 // Do not register with the queue
                 ref = new PooledSoftReference<>(new SoftReference<>(obj));
                 allReferences.add(ref);
             } else {
+                //如果不为空直接获取
                 ref = idleReferences.pollFirst();
                 obj = ref.getObject();
                 // Clear the reference so it will not be queued, but replace with a
@@ -140,7 +143,9 @@ public class SoftReferenceObjectPool<T> extends BaseObjectPool<T> {
             }
             if (null != factory && null != obj) {
                 try {
+                    //激活该对象
                     factory.activateObject(ref);
+                    //验证该对象
                     if (!factory.validateObject(ref)) {
                         throw new Exception("ValidateObject failed");
                     }
@@ -189,6 +194,7 @@ public class SoftReferenceObjectPool<T> extends BaseObjectPool<T> {
     @Override
     public synchronized void returnObject(final T obj) throws Exception {
         boolean success = !isClosed();
+        //根据obj找到指定ref
         final PooledSoftReference<T> ref = findReference(obj);
         if (ref == null) {
             throw new IllegalStateException(
