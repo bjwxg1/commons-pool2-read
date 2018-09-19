@@ -60,7 +60,7 @@ import java.util.concurrent.locks.Condition;
 class LinkedBlockingDeque<E> extends AbstractQueue<E>
         implements Deque<E>, Serializable {
 
-    /*
+    /**
      * Implemented as a simple doubly-linked list protected by a
      * single lock and using conditions to manage blocking.
      *
@@ -79,7 +79,7 @@ class LinkedBlockingDeque<E> extends AbstractQueue<E>
      * or "last" (for prev links).
      */
 
-    /*
+    /**
      * We have "diamond" multiple interface/abstract class inheritance
      * here, and that introduces ambiguities. Often we want the
      * BlockingDeque javadoc combined with the AbstractQueue
