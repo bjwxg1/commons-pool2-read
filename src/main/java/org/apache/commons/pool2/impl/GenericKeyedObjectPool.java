@@ -348,19 +348,21 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
 
         // Get local copy of current config so it is consistent for entire
         // method execution
-        //判断是否阻塞
+        //判断获取对象时是否阻塞
         final boolean blockWhenExhausted = getBlockWhenExhausted();
 
         boolean create;
         final long waitTime = System.currentTimeMillis();
-        //根据key获取队列
+        //根据key获取队列，如果队列为null，则创建新的队列
         final ObjectDeque<T> objectDeque = register(key);
 
         try {
+            //循环尝试从objectDeque中获取对象
             while (p == null) {
                 create = false;
                 //从idleObject获取元素
                 p = objectDeque.getIdleObjects().pollFirst();
+                //如果从objectDeque获取的对象为空则进行创建操作
                 if (p == null) {
                     //创建对象
                     p = create(key);
@@ -368,6 +370,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                         create = true;
                     }
                 }
+                //如果p为null，阻塞或者等待一定时间
                 if (blockWhenExhausted) {
                     if (p == null) {
                         if (borrowMaxWaitMillis < 0) {
@@ -739,8 +742,10 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
     public void clearOldest() {
 
         // build sorted map of idle objects
+        //利用treeMap的有序特性，注意是按PooledObject的Compareable方法进行排序
         final Map<PooledObject<T>, K> map = new TreeMap<>();
 
+        //遍历poolMap，将所有的空闲对象加入到treeMap中
         for (final Map.Entry<K, ObjectDeque<T>> entry : poolMap.entrySet()) {
             final K k = entry.getKey();
             final ObjectDeque<T> deque = entry.getValue();
@@ -759,6 +764,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
 
         // Now iterate created map and kill the first 15% plus one to account
         // for zero
+        //计算需要清除的对象个数
         int itemsToRemove = ((int) (map.size() * 0.15)) + 1;
         final Iterator<Map.Entry<PooledObject<T>, K>> iter =
                 map.entrySet().iterator();
@@ -774,6 +780,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
             // Assume the destruction succeeds
             boolean destroyed = true;
             try {
+                //调用destroy方法清除该对象
                 destroyed = destroy(key, p, false);
             } catch (final Exception e) {
                 swallowException(e);
@@ -1002,18 +1009,22 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
         }
         final int maxTotal = getMaxTotal();   // All keys
 
+        //根据key获取objectDeque
         final ObjectDeque<T> objectDeque = poolMap.get(key);
 
         // Check against the overall limit
         boolean loop = true;
 
+        //循环的意义在于1：防止创建对象过多；2：清除掉一些老的对象
         while (loop) {
             final int newNumTotal = numTotal.incrementAndGet();
+            //防止创建对象数超过maxTotal
             if (maxTotal > -1 && newNumTotal > maxTotal) {
                 numTotal.decrementAndGet();
                 if (getNumIdle() == 0) {
                     return null;
                 }
+                //如果newNumTotal > maxTotal进行清除操作
                 clearOldest();
             } else {
                 loop = false;
@@ -1092,9 +1103,11 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
     private boolean destroy(final K key, final PooledObject<T> toDestroy, final boolean always)
             throws Exception {
 
+        //根据key获取objectDeque
         final ObjectDeque<T> objectDeque = register(key);
 
         try {
+            //删除需要清除的对象
             final boolean isIdle = objectDeque.getIdleObjects().remove(toDestroy);
 
             if (isIdle || always) {
@@ -1139,6 +1152,7 @@ public class GenericKeyedObjectPool<K, T> extends BaseGenericObjectPool<T>
                 lock.unlock();
                 lock = keyLock.writeLock();
                 lock.lock();
+                //第二次校验，防止并发
                 objectDeque = poolMap.get(k);
                 if (objectDeque == null) {
                     objectDeque = new ObjectDeque<>(fairness);
